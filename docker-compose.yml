@@ -12,6 +12,8 @@ services:
       - 80:80
       - 443:443
     volumes:
+      - ./ssl.crt:/server.crt
+      - ./ssl.key:/server.key
       - ./apache.sh:/entrypoint
       - server:/var/www/owncloud
     entrypoint: bash /entrypoint
