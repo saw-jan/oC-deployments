@@ -9,8 +9,8 @@ services:
       APACHE_SSL_KEY: /server.key
       APACHE_LOGGING_PATH: /dev/null
     ports:
-      - 80:80
-      - 443:443
+      - 8080:80
+      - 8083:443
     volumes:
       - ./ssl.crt:/server.crt
       - ./ssl.key:/server.key
