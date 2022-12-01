@@ -1,0 +1,66 @@
+---
+version: '3.7'
+
+services:
+  ocis:
+    image: owncloud/ocis:latest
+    ports:
+      - 9200:9200
+    environment:
+      OCIS_URL: https://localhost:9200
+      # to access from VMs use the following two envs
+      # OCIS_URL: https://192.168.56.1:9200
+      # PROXY_HTTP_ADDR: 0.0.0.0:9200
+      # users/gropups from ldap
+      LDAP_URI: ldaps://ldap
+      LDAP_INSECURE: 'true'
+      LDAP_BIND_DN: 'cn=admin,dc=owncloud,dc=com'
+      LDAP_BIND_PASSWORD: admin
+      LDAP_GROUP_BASE_DN: 'dc=owncloud,dc=com'
+      LDAP_GROUP_FILTER: '(objectclass=owncloud)'
+      LDAP_GROUP_OBJECTCLASS: 'groupOfNames'
+      LDAP_USER_BASE_DN: 'dc=owncloud,dc=com'
+      LDAP_USER_FILTER: '(objectclass=owncloud)'
+      LDAP_USER_OBJECTCLASS: 'inetOrgPerson'
+      LDAP_LOGIN_ATTRIBUTES: 'uid'
+      OCIS_ADMIN_USER_ID: 'ddc2004c-0977-11eb-9d3f-a793888cd0f8'
+      IDP_LDAP_URI: ldap://ldap
+      IDP_LDAP_LOGIN_ATTRIBUTE: 'uid'
+      IDP_LDAP_UUID_ATTRIBUTE: 'ownclouduuid'
+      IDP_LDAP_UUID_ATTRIBUTE_TYPE: binary
+      GRAPH_LDAP_SERVER_WRITE_ENABLED: 'false' # assuming the external ldap is readonly
+      # OCIS_RUN_SERVICES specifies to start all services except glauth, idm and accounts. These are replaced by external services
+      OCIS_RUN_SERVICES: app-registry,app-provider,audit,auth-basic,auth-machine,frontend,gateway,graph,groups,idp,nats,notifications,ocdav,ocs,proxy,search,settings,sharing,storage-system,storage-publiclink,storage-shares,storage-users,store,thumbnails,users,web,webdav
+      # General oCIS config
+      OCIS_LOG_LEVEL: info
+      OCIS_LOG_COLOR: false
+      # INSECURE: needed if oCIS / Traefik is using self generated certificates
+      OCIS_INSECURE: true
+      # basic auth (not recommended, but needed for eg. WebDav clients that do not support OpenID Connect)
+      PROXY_ENABLE_BASIC_AUTH: true
+    entrypoint:
+      - /bin/sh
+    # run ocis init to initialize a configuration file with random secrets
+    # it will fail on subsequent runs, because the config file already exists
+    # therefore we ignore the error and then start the ocis server
+    command: ['-c', 'ocis init || true; ocis server']
+    depends_on:
+      - ldap
+    restart: always
+
+  ldap:
+    image: osixia/openldap:latest
+    command: --copy-service --loglevel debug
+    environment:
+      LDAP_TLS_VERIFY_CLIENT: never
+      LDAP_DOMAIN: owncloud.com
+      LDAP_ORGANISATION: ownCloud
+      LDAP_ADMIN_PASSWORD: admin
+      LDAP_RFC2307BIS_SCHEMA: 'true'
+      LDAP_REMOVE_CONFIG_AFTER_SETUP: 'false'
+    ports:
+      - '127.0.0.1:389:389'
+      - '127.0.0.1:636:636'
+    volumes:
+      - ./config/ldap/ldif:/container/service/slapd/assets/config/bootstrap/ldif/custom
+    restart: always

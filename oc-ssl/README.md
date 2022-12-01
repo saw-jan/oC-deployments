@@ -1,5 +1,7 @@
 ## ownCloud server with ssl enabled
 
+Server version: `latest-stable-release`
+
 ### Start the server
 
 ```bash
